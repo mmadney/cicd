@@ -1,0 +1,51 @@
+# Android Firebase Distribution Workflow
+# This workflow automates building and distributing an Android APK to Firebase App Distribution.
+name: Android Firebase Distribution
+
+# Workflow Triggers
+# Triggers on push to main branch and manual workflow dispatch.
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Job runs on the latest Ubuntu runner
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Flutter environment with specified version
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.0"
+
+      # Step 3: Cache Flutter dependencies to speed up workflow runs
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            build
+          key: ${{ runner.os }}-flutter-${{ hashFiles('pubspec.lock') }}
+
+      # Step 4: Install Dart and Flutter dependencies
+      - name: Install dependencies
+        run: flutter pub get
+
+      # Step 5: Build the release APK (without tree-shake-icons for faster builds)
+      - name: Build release APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      # Step 6: Upload the generated APK to Firebase App Distribution
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: 1:685191005419:android:549908df27d3135c182aae
+          token: ${{ secrets.FIREBASE_TOKEN }}
+          file: build/app/outputs/flutter-apk/app-release.apk
